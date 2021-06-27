@@ -6,7 +6,8 @@ name       = "pypi"
 [packages]
 
 [dev-packages]
-yapf = "*"
+yapf          = "*"
+parameterized = "*"
 
 [requires]
 python_version = "3.8"

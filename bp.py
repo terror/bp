@@ -6,25 +6,29 @@ import shutil
 import sys
 import traceback
 import unittest
+from parameterized import parameterized_class
 
 # **** Tests ****
 
 
+# yapf: disable
+@parameterized_class(('line', 'expected_vars', 'expected_parsed_line'), [
+  ('{%a%}{%b%}', ['a', 'b'], '12'),
+  ('xxx{%c%}+{%b%}wwwww{%a%}', ['c', 'b', 'a'], 'xxx3+2wwwww1'),
+  ('{%ax%}{%b%}', ['ax', 'b'], '{%ax%}2'),
+  ('{%ax%}{%bx%}', ['ax', 'bx'], '{%ax%}{%bx%}'),
+  # TODO: this behaviour should work ('{%{%a%}{%b%}%}', ['{%a%}{%b%}', 'a', 'b'], '{%12%}')
+])
+# yapf: enable
 class TestParser(unittest.TestCase):
   def setUp(self):
     self.parser = Parser({'a': 1, 'b': 2, 'c': 3})
-    self.cases = {
-        'vars': [('{%a%}{%b%}', ['a', 'b']), ('xxx{%c%}+{%b%}wwwww{%a%}', ['c', 'b', 'a'])],
-        'line': [('{%a%}{%b%}', '12'), ('xxx{%c%}+{%b%}wwwww{%a%}', 'xxx3+2wwwww1')]
-    }
 
   def test_get_vars(self):
-    for test, result in self.cases['vars']:
-      self.assertEqual(self.parser.get_vars(test), result)
+    self.assertEqual(self.parser.get_vars(self.line), self.expected_vars)
 
   def test_parse_line(self):
-    for test, result in self.cases['line']:
-      self.assertEqual(self.parser.parse_line(test), result)
+    self.assertEqual(self.parser.parse_line(self.line), self.expected_parsed_line)
 
 
 # **** Implementation ****
