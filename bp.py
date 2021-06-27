@@ -27,7 +27,7 @@ class TestParser(unittest.TestCase):
       self.assertEqual(self.parser.parse_line(test), result)
 
 
-# **** Implementation
+# **** Implementation ****
 
 CONFIG = '~/bp.toml'
 DEFAULT = {'store': '~/.bp'}
@@ -224,7 +224,7 @@ class Handler:
     p = f'{env["filename"]}.{env["extension"]}' if env['extension'] else f'{env["filename"]}'
     parser = Parser(env)
     with open(os.path.join(path, p), "w+") as out:
-      lines = parser.run(file.content())
+      lines = parser.run(file.content()[file.end:])
       for line in lines:
         out.write(line)
 
