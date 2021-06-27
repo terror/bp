@@ -1,5 +1,10 @@
 default:
   just --list
 
+ci: fmt test
+
 fmt:
   yapf --in-place --recursive *.py
+
+test:
+  python3 -m unittest bp.py

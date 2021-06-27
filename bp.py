@@ -1,9 +1,33 @@
 import argparse
 import enum
+import re
 import os
 import shutil
 import sys
 import traceback
+import unittest
+
+# **** Tests ****
+
+
+class TestParser(unittest.TestCase):
+  def setUp(self):
+    self.parser = Parser({'a': 1, 'b': 2, 'c': 3})
+    self.cases = {
+        'vars': [('{%a%}{%b%}', ['a', 'b']), ('xxx{%c%}+{%b%}wwwww{%a%}', ['c', 'b', 'a'])],
+        'line': [('{%a%}{%b%}', '12'), ('xxx{%c%}+{%b%}wwwww{%a%}', 'xxx3+2wwwww1')]
+    }
+
+  def test_get_vars(self):
+    for test, result in self.cases['vars']:
+      self.assertEqual(self.parser.get_vars(test), result)
+
+  def test_parse_line(self):
+    for test, result in self.cases['line']:
+      self.assertEqual(self.parser.parse_line(test), result)
+
+
+# **** Implementation
 
 CONFIG = '~/bp.toml'
 DEFAULT = {'store': '~/.bp'}
@@ -128,20 +152,47 @@ class File(Path):
     return content
 
 
-class Var:
-  def __init__(self, var):
-    self.var = var
+# class Var:
+#   def __init__(self, var):
+#     self.var = var
 
-  @property
-  def data(self):
-    if not self.var.endswith("%}"):
-      # {%swag%}, -> swag (for now)
-      for i in range(len(self.var) - 1, 1, -1):
-        a, b = self.var[i], self.var[i - 1]
-        if b + a == "%}":
-          val = len(self.var) - i + 1
-          return (self.var[2:][:-val], i)
-    return (self.var[2:][:-2], 0)
+#   @property
+#   def data(self):
+#     if not self.var.endswith("%}"):
+#       # {%swag%}, -> swag (for now)
+#       for i in range(len(self.var) - 1, 1, -1):
+#         a, b = self.var[i], self.var[i - 1]
+#         if b + a == "%}":
+#           val = len(self.var) - i + 1
+#           return (self.var[2:][:-val], i)
+#     return (self.var[2:][:-2], 0)
+
+
+class Parser:
+  def __init__(self, env):
+    self.env = env
+
+  def run(self, lines):
+    for i in range(len(lines)):
+      lines[i] = self.parse_line(lines[i])
+    return lines
+
+  def get_vars(self, line):
+    return re.findall("{%(.*?)%}", line)
+
+  def parse_line(self, line):
+    # some cases:
+    # a: 1; b: 2
+    # {%a%} + {%b%} -> 1 + 2
+    # ({%a%}{%b%})  -> (12)
+    vars = self.get_vars(line)
+    if not vars:
+      return line
+    for v in vars:
+      if v not in self.env:
+        continue
+      line = re.sub("{%" + v + "%}", str(self.env[v]), line)
+    return line
 
 
 class Handler:
@@ -154,25 +205,27 @@ class Handler:
 
     {Arg.USE: self.__use, Arg.INT: self.__use_interactive, Arg.SAVE: self.__save}[arg](*data)
 
-  def __sub(self, lines, env, end):
-    for i in range(len(lines)):
-      curr = lines[i].split(" ")
-      for j in range(len(curr)):
-        if curr[j].strip().startswith("{%"):
-          var = Var(curr[j].strip())
-          name, suf = var.data
-          if name in env:
-            if suf:
-              curr[j] = env[name] + curr[j][suf + 1:]
-            else:
-              curr[j] = env[name] + "\n" if curr[j].endswith("\n") else ""
-      lines[i] = " ".join(curr)
-    return lines[end:]
+  # def __sub(self, lines, env, end):
+  #   for i in range(len(lines)):
+  #     curr = lines[i].split(" ")
+  #     for j in range(len(curr)):
+  #       if curr[j].strip().startswith("{%"):
+  #         var = Var(curr[j].strip())
+  #         name, suf = var.data
+  #         if name in env:
+  #           if suf:
+  #             curr[j] = env[name] + curr[j][suf + 1:]
+  #           else:
+  #             curr[j] = env[name] + "\n" if curr[j].endswith("\n") else ""
+  #     lines[i] = " ".join(curr)
+  #   return lines[end:]
 
   def __write(self, env, file, path):
     p = f'{env["filename"]}.{env["extension"]}' if env['extension'] else f'{env["filename"]}'
+    parser = Parser(env)
     with open(os.path.join(path, p), "w+") as out:
-      for line in self.__sub(file.content(), env, file.end):
+      lines = parser.run(file.content())
+      for line in lines:
         out.write(line)
 
   def __use(self, name, path=None):
@@ -216,5 +269,5 @@ if __name__ == '__main__':
     main(cli(), Config.load())
   except Utils.exceptions() as error:
     print(error)
-    # traceback.print_exc()
+    traceback.print_exc()
     sys.exit(1)
