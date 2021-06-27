@@ -1,7 +1,6 @@
 import unittest, sys
 from parameterized import parameterized_class
-from bp import Parser
-
+from src.parser import Parser
 
 # yapf: disable
 @parameterized_class(('line', 'expected_vars', 'expected_parsed_line'), [

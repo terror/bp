@@ -1,59 +1,16 @@
 #!/usr/bin/python3
 
 import argparse
-import enum
-import re
-import os
 import shutil
+import os
+import re
 import sys
-import traceback
+import enum
+
+# **** config.py ****
 
 CONFIG = '~/bp.toml'
 DEFAULT = {'store': '~/.bp'}
-
-
-class InvalidFileFormat(Exception):
-  pass
-
-
-class InvalidArgument(Exception):
-  pass
-
-
-class Arg(enum.Enum):
-  USE = 1
-  INT = 2
-  SAVE = 3
-
-
-class Utils:
-  def handle(func):
-    def wrap(*args, **kwargs):
-      parser, args = func(*args, **kwargs)
-
-      if not any([args.use, args.interactive, args.save]):
-        parser.print_help()
-        raise InvalidArgument('\nYou must specify an option.')
-
-      if args.interactive and not args.use:
-        raise InvalidArgument('Cannot use the `--interactive` flag without `--use`.')
-
-      if args.use and args.save:
-        raise InvalidArgument('Cannot use `--use` alongside `--save`.')
-
-      return args
-
-    return wrap
-
-  def exceptions():
-    return (Exception, InvalidFileFormat, InvalidArgument)
-
-  def convert(args):
-    for pred, res in [(lambda args: args.use and args.interactive, (Arg.INT, args.use)),
-                      (lambda args: args.use, (Arg.USE, args.use)), (lambda args: args.save, (Arg.SAVE, args.save))]:
-      if pred(args):
-        return res
-
 
 class Config:
   def __init__(self, store):
@@ -78,6 +35,125 @@ class Config:
 
     return Config(**d)
 
+# **** handler.py ****
+
+class Handler:
+  def __init__(self, args, config):
+    self.args = args
+    self.config = config
+
+  def run(self):
+    arg, data = self.args
+    {Arg.USE: self.__use, Arg.INT: self.__use_interactive, Arg.SAVE: self.__save}[arg](*data)
+
+  def __use(self, name, path=None):
+    file = File(os.path.join(self.config.store, f'{name}.bp'))
+    env = file.env
+    path = path or os.getcwd()
+
+    self.__write(env, file, path)
+
+  def __use_interactive(self, name, path=None):
+    file = File(os.path.join(self.config.store, f'{name}.bp'))
+    env = file.env
+    path = path or os.getcwd()
+
+    for var in env:
+      inp = input(f'{var}: ')
+      env[var] = inp
+
+    self.__write(env, file, path)
+
+  def __save(self, name, path):
+    path = os.path.abspath(path)
+    shutil.move(path, os.path.join(self.config.store, f'{name}.bp'))
+
+  def __write(self, env, file, path):
+    p = f'{env["filename"]}.{env["extension"]}' if env['extension'] else f'{env["filename"]}'
+    parser = Parser(env)
+    with open(os.path.join(path, p), "w+") as out:
+      lines = parser.run(file.content()[file.end:])
+      for line in lines:
+        out.write(line)
+
+# **** parser.py ****
+
+class Parser:
+  def __init__(self, env):
+    self.env = env
+
+  def run(self, lines):
+    for i in range(len(lines)):
+      lines[i] = self.parse_line(lines[i])
+    return lines
+
+  def get_vars(self, line):
+    return re.findall("{%(.*?)%}", line)
+
+  def parse_line(self, line):
+    # some cases:
+    # a: 1; b: 2
+    # {%a%} + {%b%} -> 1 + 2
+    # ({%a%}{%b%})  -> (12)
+    vars = self.get_vars(line)
+    if not vars:
+      return line
+    for v in vars:
+      if v not in self.env:
+        continue
+      line = re.sub("{%" + v + "%}", str(self.env[v]), line)
+    return line
+
+# **** utils.py ****
+
+# yapf: disable
+
+class InvalidFileFormat(Exception):
+  pass
+
+class InvalidArgument(Exception):
+  pass
+
+class Utils:
+  def handle(func):
+    def wrap(*args, **kwargs):
+      parser, args = func(*args, **kwargs)
+
+      if not any([args.use, args.interactive, args.save]):
+        parser.print_help()
+        raise InvalidArgument('\nYou must specify an option.')
+
+      if args.interactive and not args.use:
+        raise InvalidArgument('Cannot use the `--interactive` flag without `--use`.')
+
+      if args.use and args.save:
+        raise InvalidArgument('Cannot use `--use` alongside `--save`.')
+
+      return args
+    return wrap
+
+  def exceptions():
+    return (Exception, InvalidFileFormat, InvalidArgument)
+
+  def convert(args):
+    for pred, res in [
+        (lambda args: args.use and args.interactive, (Arg.INT, args.use)),
+        (lambda args: args.use, (Arg.USE, args.use)),
+        (lambda args: args.save, (Arg.SAVE, args.save))
+    ]:
+      if pred(args):
+        return res
+
+# yapf: enable
+
+# **** arg.py ****
+
+class Arg(enum.Enum):
+  USE = 1
+  INT = 2
+  SAVE = 3
+
+# **** path.py ****
 
 class Path:
   def __init__(self, path):
@@ -99,7 +175,6 @@ class Path:
   def ext(self):
     _, ext = os.path.splitext(self.last)
     return ext
-
 
 class File(Path):
   def __init__(self, path):
@@ -130,105 +205,7 @@ class File(Path):
       content = file.readlines()
     return content
 
-
-# class Var:
-#   def __init__(self, var):
-#     self.var = var
-
-#   @property
-#   def data(self):
-#     if not self.var.endswith("%}"):
-#       # {%swag%}, -> swag (for now)
-#       for i in range(len(self.var) - 1, 1, -1):
-#         a, b = self.var[i], self.var[i - 1]
-#         if b + a == "%}":
-#           val = len(self.var) - i + 1
-#           return (self.var[2:][:-val], i)
-#     return (self.var[2:][:-2], 0)
-
-
-class Parser:
-  def __init__(self, env):
-    self.env = env
-
-  def run(self, lines):
-    for i in range(len(lines)):
-      lines[i] = self.parse_line(lines[i])
-    return lines
-
-  def get_vars(self, line):
-    return re.findall("{%(.*?)%}", line)
-
-  def parse_line(self, line):
-    # some cases:
-    # a: 1; b: 2
-    # {%a%} + {%b%} -> 1 + 2
-    # ({%a%}{%b%})  -> (12)
-    vars = self.get_vars(line)
-    if not vars:
-      return line
-    for v in vars:
-      if v not in self.env:
-        continue
-      line = re.sub("{%" + v + "%}", str(self.env[v]), line)
-    return line
-
-
-class Handler:
-  def __init__(self, args, config):
-    self.args = args
-    self.config = config
-
-  def run(self):
-    arg, data = self.args
-
-    {Arg.USE: self.__use, Arg.INT: self.__use_interactive, Arg.SAVE: self.__save}[arg](*data)
-
-  # def __sub(self, lines, env, end):
-  #   for i in range(len(lines)):
-  #     curr = lines[i].split(" ")
-  #     for j in range(len(curr)):
-  #       if curr[j].strip().startswith("{%"):
-  #         var = Var(curr[j].strip())
-  #         name, suf = var.data
-  #         if name in env:
-  #           if suf:
-  #             curr[j] = env[name] + curr[j][suf + 1:]
-  #           else:
-  #             curr[j] = env[name] + "\n" if curr[j].endswith("\n") else ""
-  #     lines[i] = " ".join(curr)
-  #   return lines[end:]
-
-  def __write(self, env, file, path):
-    p = f'{env["filename"]}.{env["extension"]}' if env['extension'] else f'{env["filename"]}'
-    parser = Parser(env)
-    with open(os.path.join(path, p), "w+") as out:
-      lines = parser.run(file.content()[file.end:])
-      for line in lines:
-        out.write(line)
-
-  def __use(self, name, path=None):
-    file = File(os.path.join(self.config.store, f'{name}.bp'))
-    env = file.env
-    path = path or os.getcwd()
-
-    self.__write(env, file, path)
-
-  def __use_interactive(self, name, path=None):
-    file = File(os.path.join(self.config.store, f'{name}.bp'))
-    env = file.env
-    path = path or os.getcwd()
-
-    for var in env:
-      inp = input(f'{var}: ')
-      env[var] = inp
-
-    self.__write(env, file, path)
-
-  def __save(self, name, path):
-    path = os.path.abspath(path)
-    shutil.move(path, os.path.join(self.config.store, f'{name}.bp'))
-
+# **** __main__.py ****
 
 @Utils.handle
 def cli():
@@ -238,10 +215,8 @@ def cli():
   parser.add_argument('--save', '-s', nargs=2, help='Save a template in `store`.')
   return (parser, parser.parse_args())
 
-
 def main(args, config):
   Handler(Utils.convert(args), config).run()
-
 
 if __name__ == '__main__':
   try:

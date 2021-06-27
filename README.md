@@ -1,4 +1,4 @@
-`bp` is a simple templating engine for commonly used project files.
+`bp` is a simple, ~200 loc (excluding tests!) templating engine for commonly used project files.
 
 #### Installation
 

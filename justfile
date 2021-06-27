@@ -8,3 +8,6 @@ fmt:
 
 test:
   python3 -m unittest test/*.py
+
+compile:
+  ./bin/compile
