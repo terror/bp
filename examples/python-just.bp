@@ -1,20 +1,20 @@
 ---
 filename: justfile
-name: project
+pkg_name: placeholder
 ---
 ci: fmt lint test
 
 lint:
-  pylint {%name%}
+  pylint {%pkg_name%}
 
 fmt:
-  yapf --in-place --recursive --style="{indent_width: 2}" **/*.py
+  yapf --in-place --recursive **/*.py
 
 test:
   pytest
 
 run *args:
-  python3 {%name%} {{args}}
+  python3 {%pkg_name%} {{args}}
 
 install *pkg:
   pipenv install {{pkg}} --skip-lock
@@ -23,7 +23,7 @@ build:
   python3 setup.py sdist && python3 setup.py build
 
 clean:
-  rm -rf dist build {%name%}.egg-info
+  rm -rf dist build {%pkg_name%}.egg-info
 
 publish:
   twine upload dist/*
