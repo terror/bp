@@ -1,0 +1,10 @@
+---
+filename: justfile
+extension: test
+name: test
+---
+run:
+  echo {%name%}
+
+lint:
+  pylint {%name%}

@@ -165,16 +165,12 @@ class Handler:
             if suf:
               curr[j] = env[name] + curr[j][suf + 1:]
             else:
-              curr[j] = env[name]
+              curr[j] = env[name] + "\n" if curr[j].endswith("\n") else ""
       lines[i] = " ".join(curr)
     return lines[end:]
 
   def __write(self, env, file, path):
-    if env['extension']:
-      p = f'{env["filename"]}.{env["extension"]}'
-    else:
-      p = f'{env["filename"]}'
-
+    p = f'{env["filename"]}.{env["extension"]}' if env['extension'] else f'{env["filename"]}'
     with open(os.path.join(path, p), "w+") as out:
       for line in self.__sub(file.content(), env, file.end):
         out.write(line)

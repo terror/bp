@@ -1,0 +1,5 @@
+run:
+  echo test
+
+lint:
+  pylint test
