@@ -1,5 +1,14 @@
 `bp` is a simple templating engine for commonly used project files.
 
+#### Installation
+
+```bash
+$ curl https://raw.githubusercontent.com/terror/bp/master/bp.py -o /usr/local/bin/bp
+$ chmod +x /usr/local/bin/bp
+```
+
+#### Usage
+
 ```
 usage: bp.py [-h] [--use NAME [...]] [--interactive] [--save NAME PATH]
 

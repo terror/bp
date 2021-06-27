@@ -1,3 +1,5 @@
+#!/usr/bin/python3
+
 import argparse
 import enum
 import re
@@ -5,33 +7,6 @@ import os
 import shutil
 import sys
 import traceback
-import unittest
-from parameterized import parameterized_class
-
-# **** Tests ****
-
-
-# yapf: disable
-@parameterized_class(('line', 'expected_vars', 'expected_parsed_line'), [
-  ('{%a%}{%b%}', ['a', 'b'], '12'),
-  ('xxx{%c%}+{%b%}wwwww{%a%}', ['c', 'b', 'a'], 'xxx3+2wwwww1'),
-  ('{%ax%}{%b%}', ['ax', 'b'], '{%ax%}2'),
-  ('{%ax%}{%bx%}', ['ax', 'bx'], '{%ax%}{%bx%}'),
-  # TODO: this behaviour should work ('{%{%a%}{%b%}%}', ['{%a%}{%b%}', 'a', 'b'], '{%12%}')
-])
-# yapf: enable
-class TestParser(unittest.TestCase):
-  def setUp(self):
-    self.parser = Parser({'a': 1, 'b': 2, 'c': 3})
-
-  def test_get_vars(self):
-    self.assertEqual(self.parser.get_vars(self.line), self.expected_vars)
-
-  def test_parse_line(self):
-    self.assertEqual(self.parser.parse_line(self.line), self.expected_parsed_line)
-
-
-# **** Implementation ****
 
 CONFIG = '~/bp.toml'
 DEFAULT = {'store': '~/.bp'}
@@ -273,5 +248,5 @@ if __name__ == '__main__':
     main(cli(), Config.load())
   except Utils.exceptions() as error:
     print(error)
-    traceback.print_exc()
+    # traceback.print_exc()
     sys.exit(1)

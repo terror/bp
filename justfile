@@ -4,7 +4,7 @@ default:
 ci: fmt test
 
 fmt:
-  yapf --in-place --recursive *.py
+  yapf --in-place --recursive **/*.py
 
 test:
-  python3 -m unittest bp.py
+  python3 -m unittest test/*.py
