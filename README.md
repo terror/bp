@@ -10,11 +10,12 @@ $ chmod +x /usr/local/bin/bp
 #### Usage
 
 ```
-usage: bp.py [-h] [--use NAME [...]] [--interactive] [--save NAME PATH]
+usage: bp.py [-h] [--use USE [USE ...]] [--list] [--interactive] [--save SAVE [SAVE ...]]
 
 optional arguments:
   -h, --help            show this help message and exit
-  --use -u NAME [...]   Use a file template.
-  --interactive, -i     Be prompted for each variable that resides in the files frontmatter.
-  --save -s NAME PATH   Save a template in the local storage location.
+  --use -u [NAMES] PATH Use a file template.
+  --save -s NAME PATH   Save a template in `store`.
+  --list, -l            List all available templates.
+  --interactive, -i     Be prompted for each variable in the files frontmatter.
 ```

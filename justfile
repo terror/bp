@@ -1,7 +1,7 @@
 default:
   just --list
 
-ci: fmt test
+ci: test
 
 fmt:
   yapf --in-place --recursive **/*.py

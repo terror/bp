@@ -6,8 +6,11 @@ name       = "pypi"
 [packages]
 
 [dev-packages]
-yapf          = "*"
 parameterized = "*"
+yapf          = "*"
 
 [requires]
 python_version = "3.8"
+
+[scripts]
+test = "python3 -m unittest"
