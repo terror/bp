@@ -11,25 +11,33 @@ class Handler:
 
   def run(self):
     arg, data = self.args
-    {Arg.USE: self.__use, Arg.INT: self.__use_interactive, Arg.SAVE: self.__save}[arg](*data)
+    {Arg.USE: self.__use, Arg.INT: self.__use_interactive, Arg.SAVE: self.__save, Arg.LIST: self.__list}[arg](*data)
 
-  def __use(self, name, path=None):
-    file = File(os.path.join(self.config.store, f'{name}.bp'))
-    env = file.env
-    path = path or os.getcwd()
+  def __use(self, *data):
+    names, path = Utils.split(data)
 
-    self.__write(env, file, path)
+    for name in names:
+      file = File(os.path.join(self.config.store, f'{name}.bp'))
+      self.__write(file.env, file, path or os.getcwd())
 
-  def __use_interactive(self, name, path=None):
-    file = File(os.path.join(self.config.store, f'{name}.bp'))
-    env = file.env
-    path = path or os.getcwd()
+  def __use_interactive(self, *data):
+    names, path = Utils.split(data)
 
-    for var in env:
-      inp = input(f'{var}: ')
-      env[var] = inp
+    for name in names:
+      print(f'**** template {name}.bp ****')
 
-    self.__write(env, file, path)
+      file = File(os.path.join(self.config.store, f'{name}.bp'))
+      env = file.env
+
+      for var in env:
+        inp = input(f'{var}: ')
+        env[var] = inp
+
+      self.__write(env, file, path or os.getcwd())
+
+  def __list(self, *args):
+    d = os.listdir(os.path.expanduser(self.config.store))
+    print(*d, sep="\n")
 
   def __save(self, name, path):
     path = os.path.abspath(path)

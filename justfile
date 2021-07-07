@@ -9,5 +9,5 @@ fmt:
 test:
   python3 -m unittest test/*.py
 
-compile:
+compile: fmt
   ./bin/compile

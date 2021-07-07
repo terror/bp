@@ -9,8 +9,9 @@ from config import Config
 def cli():
   parser = argparse.ArgumentParser()
   parser.add_argument('--use', '-u', nargs='+', help='Use a file template.')
+  parser.add_argument('--list', '-l', action='store_true', help='List all available templates.')
   parser.add_argument('--interactive', '-i', action="store_true", help='Be prompted for variable in frontmatter.')
-  parser.add_argument('--save', '-s', nargs=2, help='Save a template in `store`.')
+  parser.add_argument('--save', '-s', nargs='+', help='Save a template in `store`.')
   return (parser, parser.parse_args())
 
 def main(args, config):

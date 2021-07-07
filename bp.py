@@ -9,7 +9,7 @@ import enum
 
 # **** config.py ****
 
-CONFIG = '~/bp.toml'
+CONFIG = '~/.bp.toml'
 DEFAULT = {'store': '~/.bp'}
 
 class Config:
@@ -44,25 +44,33 @@ class Handler:
 
   def run(self):
     arg, data = self.args
-    {Arg.USE: self.__use, Arg.INT: self.__use_interactive, Arg.SAVE: self.__save}[arg](*data)
+    {Arg.USE: self.__use, Arg.INT: self.__use_interactive, Arg.SAVE: self.__save, Arg.LIST: self.__list}[arg](*data)
 
-  def __use(self, name, path=None):
-    file = File(os.path.join(self.config.store, f'{name}.bp'))
-    env = file.env
-    path = path or os.getcwd()
+  def __use(self, *data):
+    names, path = Utils.split(data)
 
-    self.__write(env, file, path)
+    for name in names:
+      file = File(os.path.join(self.config.store, f'{name}.bp'))
+      self.__write(file.env, file, path or os.getcwd())
 
-  def __use_interactive(self, name, path=None):
-    file = File(os.path.join(self.config.store, f'{name}.bp'))
-    env = file.env
-    path = path or os.getcwd()
+  def __use_interactive(self, *data):
+    names, path = Utils.split(data)
 
-    for var in env:
-      inp = input(f'{var}: ')
-      env[var] = inp
+    for name in names:
+      print(f'**** template {name}.bp ****')
 
-    self.__write(env, file, path)
+      file = File(os.path.join(self.config.store, f'{name}.bp'))
+      env = file.env
+
+      for var in env:
+        inp = input(f'{var}: ')
+        env[var] = inp
+
+      self.__write(env, file, path or os.getcwd())
+
+  def __list(self, *args):
+    d = os.listdir(os.path.expanduser(self.config.store))
+    print(*d, sep="\n")
 
   def __save(self, name, path):
     path = os.path.abspath(path)
@@ -119,7 +127,7 @@ class Utils:
     def wrap(*args, **kwargs):
       parser, args = func(*args, **kwargs)
 
-      if not any([args.use, args.interactive, args.save]):
+      if not any([args.use, args.interactive, args.save, args.list]):
         parser.print_help()
         raise InvalidArgument('\nYou must specify an option.')
 
@@ -132,6 +140,13 @@ class Utils:
       return args
     return wrap
 
+  def split(l):
+    if not l:
+      return
+    if os.path.exists(l[-1]):
+      return (l[:-1], l[-1])
+    return (l, None)
+
   def exceptions():
     return (Exception, InvalidFileFormat, InvalidArgument)
 
@@ -139,7 +154,8 @@ class Utils:
     for pred, res in [
         (lambda args: args.use and args.interactive, (Arg.INT, args.use)),
         (lambda args: args.use, (Arg.USE, args.use)),
-        (lambda args: args.save, (Arg.SAVE, args.save))
+        (lambda args: args.save, (Arg.SAVE, args.save)),
+        (lambda args: args.list, (Arg.LIST, [None]))
     ]:
       if pred(args):
         return res
@@ -152,6 +168,7 @@ class Arg(enum.Enum):
   USE = 1
   INT = 2
   SAVE = 3
+  LIST = 4
 
 # **** path.py ****
 
@@ -211,8 +228,9 @@ class File(Path):
 def cli():
   parser = argparse.ArgumentParser()
   parser.add_argument('--use', '-u', nargs='+', help='Use a file template.')
+  parser.add_argument('--list', '-l', action='store_true', help='List all available templates.')
   parser.add_argument('--interactive', '-i', action="store_true", help='Be prompted for variable in frontmatter.')
-  parser.add_argument('--save', '-s', nargs=2, help='Save a template in `store`.')
+  parser.add_argument('--save', '-s', nargs='+', help='Save a template in `store`.')
   return (parser, parser.parse_args())
 
 def main(args, config):

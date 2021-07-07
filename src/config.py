@@ -1,6 +1,6 @@
 import os
 
-CONFIG = '~/bp.toml'
+CONFIG = '~/.bp.toml'
 DEFAULT = {'store': '~/.bp'}
 
 class Config:
