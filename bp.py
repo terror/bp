@@ -6,6 +6,7 @@ import os
 import re
 import sys
 import enum
+import functools
 
 # **** config.py ****
 
@@ -42,16 +43,23 @@ class Handler:
     self.args = args
     self.config = config
 
+  # yapf: disable
   def run(self):
     arg, data = self.args
-    {Arg.USE: self.__use, Arg.INT: self.__use_interactive, Arg.SAVE: self.__save, Arg.LIST: self.__list}[arg](*data)
+    {
+      Arg.USE: self.__use,
+      Arg.INT: self.__use_interactive,
+      Arg.SAVE: self.__save,
+      Arg.LIST: self.__list
+    }[arg](*data)
+  # yapf: enable
 
   def __use(self, *data):
     names, path = Utils.split(data)
 
     for name in names:
       file = File(os.path.join(self.config.store, f'{name}.bp'))
-      self.__write(file.env, file, path or os.getcwd())
+      self.__write(file, path or os.getcwd())
 
   def __use_interactive(self, *data):
     names, path = Utils.split(data)
@@ -60,13 +68,13 @@ class Handler:
       print(f'**** template {name}.bp ****')
 
       file = File(os.path.join(self.config.store, f'{name}.bp'))
-      env = file.env
+      for var in file.env:
+        inp = input(f'{var} ({file.env[var]}): ')
+        if not inp:
+          continue
+        file.env[var] = inp
 
-      for var in env:
-        inp = input(f'{var}: ')
-        env[var] = inp
-
-      self.__write(env, file, path or os.getcwd())
+      self.__write(file, path or os.getcwd())
 
   def __list(self, *args):
     d = os.listdir(os.path.expanduser(self.config.store))
@@ -76,11 +84,11 @@ class Handler:
     path = os.path.abspath(path)
     shutil.move(path, os.path.join(self.config.store, f'{name}.bp'))
 
-  def __write(self, env, file, path):
-    p = f'{env["filename"]}.{env["extension"]}' if env['extension'] else f'{env["filename"]}'
-    parser = Parser(env)
-    with open(os.path.join(path, p), "w+") as out:
-      lines = parser.run(file.content()[file.end:])
+  def __write(self, file, path):
+    filename = f'{file.env["filename"]}.{file.env["extension"]}' if file.env['extension'] else f'{file.env["filename"]}'
+    parser = Parser(file.env)
+    with open(os.path.join(path, filename), "w+") as out:
+      lines = parser.run(file.content[file.end:])
       for line in lines:
         out.write(line)
 
@@ -114,32 +122,14 @@ class Parser:
 
 # **** utils.py ****
 
-# yapf: disable
-
 class InvalidFileFormat(Exception):
   pass
 
-class InvalidArgument(Exception):
+class InvalidOption(Exception):
   pass
 
 class Utils:
-  def handle(func):
-    def wrap(*args, **kwargs):
-      parser, args = func(*args, **kwargs)
-
-      if not any([args.use, args.interactive, args.save, args.list]):
-        parser.print_help()
-        raise InvalidArgument('\nYou must specify an option.')
-
-      if args.interactive and not args.use:
-        raise InvalidArgument('Cannot use the `--interactive` flag without `--use`.')
-
-      if args.use and args.save:
-        raise InvalidArgument('Cannot use `--use` alongside `--save`.')
-
-      return args
-    return wrap
-
+  @staticmethod
   def split(l):
     if not l:
       return
@@ -147,20 +137,19 @@ class Utils:
       return (l[:-1], l[-1])
     return (l, None)
 
-  def exceptions():
-    return (Exception, InvalidFileFormat, InvalidArgument)
-
+  # yapf: disable
+  @staticmethod
   def convert(args):
     for pred, res in [
-        (lambda args: args.use and args.interactive, (Arg.INT, args.use)),
-        (lambda args: args.use, (Arg.USE, args.use)),
-        (lambda args: args.save, (Arg.SAVE, args.save)),
-        (lambda args: args.list, (Arg.LIST, [None]))
+      (lambda args: args.use and args.interactive, (Arg.INT, args.use)),
+      (lambda args: args.use, (Arg.USE, args.use)),
+      (lambda args: args.save, (Arg.SAVE, args.save)),
+      (lambda args: args.list, (Arg.LIST, [None]))
     ]:
       if pred(args):
         return res
-
-# yapf: enable
+    raise InvalidOption("You must pass in a valid option.")
+  # yapf: enable
 
 # **** arg.py ****
 
@@ -199,11 +188,11 @@ class File(Path):
     if self.ext != ".bp":
       raise InvalidFileFormat("File must be a valid `.bp` file.")
 
-  @property
+  @functools.cached_property
   def env(self):
     env = {'filename': self.filename, 'extension': ''}
 
-    for line in self.content()[1:]:
+    for line in self.content[1:]:
       if line.strip() == "---":
         break
       key, value = line.split(":")
@@ -213,10 +202,11 @@ class File(Path):
 
   @property
   def end(self):
-    for idx, line in enumerate(self.content()[1:]):
+    for idx, line in enumerate(self.content[1:]):
       if line.strip() == '---':
         return idx + 2
 
+  @property
   def content(self):
     with open(self.path, "r") as file:
       content = file.readlines()
@@ -224,14 +214,13 @@ class File(Path):
 
 # **** __main__.py ****
 
-@Utils.handle
 def cli():
   parser = argparse.ArgumentParser()
   parser.add_argument('--use', '-u', nargs='+', help='Use a file template.')
   parser.add_argument('--list', '-l', action='store_true', help='List all available templates.')
   parser.add_argument('--interactive', '-i', action="store_true", help='Be prompted for variable in frontmatter.')
   parser.add_argument('--save', '-s', nargs='+', help='Save a template in `store`.')
-  return (parser, parser.parse_args())
+  return parser.parse_args()
 
 def main(args, config):
   Handler(Utils.convert(args), config).run()
@@ -239,7 +228,7 @@ def main(args, config):
 if __name__ == '__main__':
   try:
     main(cli(), Config.load())
-  except Utils.exceptions() as error:
+  except (Exception, InvalidFileFormat, InvalidOption) as error:
     print(error)
     # traceback.print_exc()
     sys.exit(1)

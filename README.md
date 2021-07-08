@@ -10,7 +10,7 @@ $ chmod +x /usr/local/bin/bp
 #### Usage
 
 ```
-usage: bp.py [-h] [--use USE [USE ...]] [--list] [--interactive] [--save SAVE [SAVE ...]]
+usage: bp.py [-h] [--use [NAMES] PATH] [--list] [--interactive] [--save NAME PATH]
 
 optional arguments:
   -h, --help            show this help message and exit

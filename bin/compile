@@ -8,7 +8,8 @@ imports = [
   'os',
   're',
   'sys',
-  'enum'
+  'enum',
+  'functools'
 ]
 
 def x(path):

@@ -1,4 +1,5 @@
 import os
+import functools
 
 class Path:
   def __init__(self, path):
@@ -27,11 +28,11 @@ class File(Path):
     if self.ext != ".bp":
       raise InvalidFileFormat("File must be a valid `.bp` file.")
 
-  @property
+  @functools.cached_property
   def env(self):
     env = {'filename': self.filename, 'extension': ''}
 
-    for line in self.content()[1:]:
+    for line in self.content[1:]:
       if line.strip() == "---":
         break
       key, value = line.split(":")
@@ -41,10 +42,11 @@ class File(Path):
 
   @property
   def end(self):
-    for idx, line in enumerate(self.content()[1:]):
+    for idx, line in enumerate(self.content[1:]):
       if line.strip() == '---':
         return idx + 2
 
+  @property
   def content(self):
     with open(self.path, "r") as file:
       content = file.readlines()
