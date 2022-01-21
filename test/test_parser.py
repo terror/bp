@@ -7,7 +7,7 @@ from src.parser import Parser
   ('line', 'expected_vars', 'expected_line'),
   [
     ('{%a%}{%b%}', ['a', 'b'], '12'),
-    ('xxx{%c%}+{%b%}wwwww{%a%}', ['c', 'b', 'a'], 'xxx3+2wwwww1'),
+    ('xx{%c%}+{%b%}wwwww{%a%}', ['c', 'b', 'a'], 'xx3+2wwwww1'),
     ('{%ax%}{%b%}', ['ax', 'b'], '{%ax%}2'),
     ('{%ax%}{%bx%}', ['ax', 'bx'], '{%ax%}{%bx%}'),
   ]

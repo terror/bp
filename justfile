@@ -4,7 +4,7 @@ default:
 alias r := run
 alias f := fmt
 
-ci: test
+ci: test forbid
 
 run *args:
   python3 bp.py --verbose {{args}}
@@ -17,3 +17,6 @@ test:
 
 compile: fmt
   ./bin/compile
+
+forbid:
+	./bin/forbid
