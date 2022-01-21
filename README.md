@@ -1,4 +1,5 @@
-`bp` is a simple, ~200 loc (excluding tests!) templating engine for commonly used project files.
+`bp` is a simple, ~200 loc (excluding tests!) templating engine for commonly
+used project files.
 
 #### Installation
 
@@ -10,12 +11,12 @@ $ chmod +x /usr/local/bin/bp
 #### Usage
 
 ```
-usage: bp.py [-h] [--use [NAMES] PATH] [--list] [--interactive] [--save NAME PATH]
+usage: bp.py [-h] [--use [NAMES]] [--list] [--interactive] [--save [NAMES]]
 
 optional arguments:
-  -h, --help            show this help message and exit
-  --use -u [NAMES] PATH Use a file template.
-  --save -s NAME PATH   Save a template in `store`.
-  --list, -l            List all available templates.
-  --interactive, -i     Be prompted for each variable in the files frontmatter.
+  --help, -h                   Show this help message and exit
+  --use   -u        [NAMES]    Use a file template.
+  --list, -l                   List all available templates.
+  --interactive, -i            Be prompted for each variable in the files frontmatter.
+  --save  -s        [NAMES]    Save a template in `store`.
 ```

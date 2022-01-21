@@ -1,37 +1,49 @@
 #!/usr/bin/python3
 
 import os
+import traceback
 
 imports = [
   'argparse',
-  'shutil',
+  'dataclasses',
+  'enum',
+  'functools',
+  'json',
   'os',
   're',
+  'shutil',
   'sys',
-  'enum',
-  'functools'
+  'traceback',
+  'typing as t'
 ]
 
-def x(path):
-  with open(path, "r") as file:
-    for i, v in enumerate(file.readlines()):
-      if "import" not in v:
-        return i
+def index(lines):
+  for i, v in enumerate(lines):
+    if 'import' not in v:
+      return i
 
 def compile(path, target):
-  f = open(target, 'w+')
-  f.write("#!/usr/bin/python3\n\n")
+  target = open(target, 'w+')
+
+  target.write('#!/usr/bin/env python3\n\n')
+
   for i in imports:
-    f.write("import " + i + "\n")
-  for root, dirs, files in os.walk(path, topdown=True):
-    for file in files:
-      if file == '__init__.py':
+    target.write(f'import {i}\n')
+
+  for root, dirs, filenames in os.walk(path, topdown=True):
+    for filename in filenames:
+      if filename == '__init__.py':
         continue
-      f.write(f'\n# **** {file} ****\n')
-      with open(os.path.join(root, file), 'r') as buff:
-        for line in buff.readlines()[x(os.path.join(root, file)):]:
-          f.write(line)
-  f.close()
+      with open(os.path.join(root, filename), 'r') as file:
+        lines = file.readlines()
+        for line in lines[index(lines):]:
+          target.write(line)
+
+  target.close()
 
 if __name__ == '__main__':
-  compile('src', 'bp.py')
+  try:
+    compile('src', 'bp.py')
+  except Exception as error:
+    traceback.print_exc()
+    print(f'error: {str(error)}')

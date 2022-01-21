@@ -1,27 +1,21 @@
+import dataclasses
+import json
 import os
 
-CONFIG = '~/.bp.toml'
+PATH = '~/.bp.json'
 DEFAULT = {'store': '~/.bp'}
 
+@dataclasses.dataclass
 class Config:
-  def __init__(self, store):
-    self.store = os.path.expanduser(store)
+  store: str
 
   @staticmethod
   def load():
-    path = os.path.expanduser(CONFIG)
+    path = os.path.expanduser(PATH)
 
     if not os.path.exists(path):
       with open(path, 'w') as file:
-        for key, value in DEFAULT.items():
-          file.write("{} = {}".format(key, value))
+        json.dump(DEFAULT, file)
 
     with open(path, 'r') as file:
-      lines = file.readlines()
-
-    d = {}
-    for line in lines:
-      key, value = line.split('=')
-      d[key.strip()] = value.strip()
-
-    return Config(**d)
+      return Config(**json.load(file))

@@ -1,9 +1,10 @@
-import os
 import functools
+import os
+from error import InvalidFileFormat
 
 class Path:
   def __init__(self, path):
-    self.path = path
+    self.path = os.path.expanduser(path)
 
   def __repr__(self):
     return self.path
@@ -14,13 +15,11 @@ class Path:
 
   @property
   def filename(self):
-    name, _ = os.path.splitext(self.last)
-    return name
+    return os.path.splitext(self.last)[0]
 
   @property
   def ext(self):
-    _, ext = os.path.splitext(self.last)
-    return ext
+    return os.path.splitext(self.last)[1]
 
 class File(Path):
   def __init__(self, path):
